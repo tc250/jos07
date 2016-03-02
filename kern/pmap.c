@@ -480,7 +480,17 @@ page_initpp(struct Page *pp)
 int
 page_alloc(struct Page **pp_store)
 {
-	// Fill this function in
+	if (LIST_FIRST(&page_free_list) != NULL) {
+		*pp_store = LIST_FIRST(&page_free_list);
+		LIST_REMOVE(*pp_store, pp_link);
+
+		// [?] clear pp_ref and link by erasing the Page record
+		page_initpp(*pp_store);
+
+		return 0;
+	}
+
+	cprintf("pmap: page_alloc failed\n");
 	return -E_NO_MEM;
 }
 
