@@ -440,6 +440,16 @@ page_init(void)
 		pages[i].pp_ref = 0;
 		LIST_INSERT_HEAD(&page_free_list, &pages[i], pp_link);
 	}
+	// [?] pp_ref for thost used pages?
+	LIST_REMOVE(&pages[0], pp_link);
+	for (i = IOPHYSMEM/PGSIZE; i < EXTPHYSMEM/PGSIZE; i ++) {
+		LIST_REMOVE(&pages[i], pp_link);
+	}
+	uint32_t free_mem_begin = PADDR( ROUNDUP( (uint32_t)boot_freemem, PGSIZE ) );
+	// [!] addressed for objects in kernel needs v2p mapping by hand?
+	for (i = EXTPHYSMEM/PGSIZE; i < free_mem_begin/PGSIZE; i ++) {
+		LIST_REMOVE(&pages[i], pp_link);
+	}
 }
 
 //
