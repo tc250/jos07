@@ -178,7 +178,7 @@ i386_vm_init(void)
 	// programs will get read-only access to the array as well.
 	// You must allocate the array yourself.
 	// Your code goes here: 
-
+	pages = boot_alloc(npage * sizeof(struct Page), PGSIZE);
 
 	//////////////////////////////////////////////////////////////////////
 	// Now that we've allocated the initial kernel data structures, we set
