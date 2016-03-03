@@ -597,7 +597,15 @@ page_insert(pde_t *pgdir, struct Page *pp, void *va, int perm)
 static void
 boot_map_segment(pde_t *pgdir, uintptr_t la, size_t size, physaddr_t pa, int perm)
 {
-	// Fill this function in
+	uintptr_t d;
+	pte_t *pte;
+	// [!] assert: size is aligned as shown in pre-cond.
+	for (d = 0; d < size; d += PGSIZE) {
+		pte = pgdir_walk(pgdir, (void *)(la+d), 1);
+		assert(pte != NULL); // PTE is found or created
+		assert(pa % PGSIZE == 0); // pa is a valid pg frame base (aligned)
+		*pte = (pa + d) | perm | PTE_P;
+	}
 }
 
 //
