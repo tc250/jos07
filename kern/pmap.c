@@ -533,7 +533,28 @@ page_decref(struct Page* pp)
 pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
-	// Fill this function in
+	pte_t *pgtable;
+	// [!] vaddr == laddr (no segmentation here?)
+	if ((pgdir[PDX(va)] & PTE_P) != 0) {
+		// vaddr for PT <-- paddr for PT <-- pd entry
+		pgtable = (pte_t *)KADDR( PTE_ADDR( pgdir[PDX(va)] ) );
+
+		return &pgtable[PTX(va)];
+	}
+	else if (create != 0) {
+		struct Page *pgtable_pp;
+		if (page_alloc(&pgtable_pp) == 0) {
+			pgtable_pp->pp_ref = 1;
+			// [!] needn't erasing the new page
+
+			// [?] a page for userspace?
+			pgdir[PDX(va)] = page2pa(pgtable_pp) | PTE_P | PTE_U | PTE_W;
+
+			pgtable = (pte_t *)page2kva(pgtable_pp); // vaddr for PT <-- pp num
+			return &pgtable[PTX(va)];
+		}
+	}
+
 	return NULL;
 }
 
