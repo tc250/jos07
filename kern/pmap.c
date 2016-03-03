@@ -581,17 +581,16 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 int
 page_insert(pde_t *pgdir, struct Page *pp, void *va, int perm) 
 {
-	page_remove(pgdir, va);
-
 	pte_t *pte = pgdir_walk(pgdir, va, 1);
 	if (pte == NULL) {
 		cprintf("pmap: page_insert failed\n");
 		return -E_NO_MEM;
 	}
 
+	pp->pp_ref ++;
+	page_remove(pgdir, va);
 	// [!] pa for pp is properly aligned
 	*pte = page2pa(pp) | perm | PTE_P;
-	pp->pp_ref ++;
 	return 0;
 }
 
