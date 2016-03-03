@@ -622,7 +622,14 @@ boot_map_segment(pde_t *pgdir, uintptr_t la, size_t size, physaddr_t pa, int per
 struct Page *
 page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 {
-	// Fill this function in
+	pte_t *pte;
+	if ((pte = pgdir_walk(pgdir, va, 0)) != 0) {
+		if (pte_store != NULL)
+			*pte_store = pte;
+		// [?] page <-- paddr <-- PTE itself (actually uint32)
+		return pa2page( PTE_ADDR( (*pte) ) );
+	}
+
 	return NULL;
 }
 
