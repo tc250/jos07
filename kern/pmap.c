@@ -545,12 +545,13 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 		struct Page *pgtable_pp;
 		if (page_alloc(&pgtable_pp) == 0) {
 			pgtable_pp->pp_ref = 1;
-			// [!] needn't erasing the new page
 
 			// [?] a page for userspace?
 			pgdir[PDX(va)] = page2pa(pgtable_pp) | PTE_P | PTE_U | PTE_W;
 
 			pgtable = (pte_t *)page2kva(pgtable_pp); // vaddr for PT <-- pp num
+			// [!] new page for PT should be initialised as did for pgdir
+			memset(pgtable, 0, PGSIZE);
 			return &pgtable[PTX(va)];
 		}
 	}
