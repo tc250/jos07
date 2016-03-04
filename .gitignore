@@ -1,0 +1,6 @@
+.gitignore
+*.log
+obj/
+tags
+bochs.out
+*.swp
