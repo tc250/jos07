@@ -201,6 +201,10 @@ i386_vm_init(void)
 	//    - pages -- kernel RW, user NONE
 	//    - the read-only version mapped at UPAGES -- kernel R, user R
 	// Your code goes here:
+	// [?] pages for kernel will be mapped along with [KERNBASE, 2^32)
+	n = ROUNDUP(npage * sizeof(struct Page), PGSIZE);
+	// [!] PTE_P already added in boot_map_segment
+	boot_map_segment(pgdir, UPAGES, n, PADDR(pages), PTE_U);
 
 
 
@@ -212,6 +216,20 @@ i386_vm_init(void)
 	//     * [KSTACKTOP-PTSIZE, KSTACKTOP-KSTKSIZE) -- not backed => faults
 	//     Permissions: kernel RW, user NONE
 	// Your code goes here:
+	// [!] KSTKSIZE is already aligned by PGSIZE
+	// [?] bootstack is also (void *)
+	/*
+	 * [!] assumed general case to be considered here:
+	 * with U/S=1: anyone can access (read)
+	 * with R/W=1: anyone can write if it has read access
+	 *
+	 * PTE_U	PTE_W	supervisor					user
+	 * 0		0		R / RW (only when WP=0)		-
+	 * 0		1		RW							-
+	 * 1		0		R / RW (only when WP=0)		R
+	 * 1		1		RW							RW
+	 */
+	boot_map_segment(pgdir, KSTACKTOP-KSTKSIZE, KSTKSIZE, PADDR(bootstack), PTE_W);
 
 	//////////////////////////////////////////////////////////////////////
 	// Map all of physical memory at KERNBASE. 
@@ -221,6 +239,8 @@ i386_vm_init(void)
 	// we just set up the amapping anyway.
 	// Permissions: kernel RW, user NONE
 	// Your code goes here: 
+	// [!] 2<<32 can't be represented by neither size_t nor a const
+	boot_map_segment(pgdir, KERNBASE, 0xffffffff-KERNBASE+1, 0, PTE_W);
 
 	// Check that the initial page directory has been set up correctly.
 	check_boot_pgdir();
