@@ -117,6 +117,12 @@ env_setup_vm(struct Env *e)
 	//	env_pgdir's pp_ref!
 
 	// LAB 3: Your code here.
+	memset(page2kva(p), 0, PGSIZE);
+	e->env_pgdir = page2kva(p);
+	e->env_cr3 = page2pa(p);
+	p->pp_ref ++; // [!]
+	for (i = PDX(UTOP); i < NPDENTRIES; i ++)
+		e->env_pgdir[i] = boot_pgdir[i];
 
 	// VPT and UVPT map the env's own page table, with
 	// different permissions.
