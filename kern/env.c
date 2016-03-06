@@ -272,11 +272,34 @@ load_icode(struct Env *e, uint8_t *binary, size_t size)
 	//  What?  (See env_run() and env_pop_tf() below.)
 
 	// LAB 3: Your code here.
+	physaddr_t kern_cr3 = rcr3();
+	// [?] when cr3 changes, semantics of names can be different
+	lcr3(e->env_cr3);
+
+	struct Elf *elf_hdr = (struct Elf *)binary;
+	assert(elf_hdr->e_magic == ELF_MAGIC);
+
+	struct Proghdr *ph, *eph;
+	ph = (struct Proghdr *)((uint8_t *)elf_hdr + elf_hdr->e_phoff);
+	eph = ph + elf_hdr->e_phnum;
+	for (; ph < eph; ph ++)
+		if (ph->p_type == ELF_PROG_LOAD) {
+			segment_alloc(e, (void *)ph->p_va, ph->p_memsz);
+			memset((void *)ph->p_va, 0, ph->p_memsz - ph->p_filesz);
+			memmove((void *)ph->p_va, binary + ph->p_offset, ph->p_filesz);
+		}
+
+	e->env_tf.tf_eip = elf_hdr->e_entry; // [!] in e's VA space
 
 	// Now map one page for the program's initial stack
 	// at virtual address USTACKTOP - PGSIZE.
 
 	// LAB 3: Your code here.
+	// [?] just use segment_alloc
+	segment_alloc(e, (void *)(USTACKTOP - PGSIZE), PGSIZE);
+
+	// [!] `kern_cr3' has the same semantics in two pgdirs
+	lcr3(kern_cr3);
 }
 
 //
