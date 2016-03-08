@@ -316,6 +316,9 @@ void
 env_create(uint8_t *binary, size_t size)
 {
 	// LAB 3: Your code here.
+	struct Env *new_env;
+	assert(env_alloc(&new_env, 0) == 0);
+	load_icode(new_env, binary, size);
 }
 
 //
