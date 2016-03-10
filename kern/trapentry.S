@@ -49,7 +49,7 @@
 	TRAPHANDLER_NOEC(bounds_check, T_BOUND)
 	TRAPHANDLER_NOEC(illegal_opcode, T_ILLOP)
 	TRAPHANDLER_NOEC(device_not_available, T_DEVICE)
-	TRAPHANDLER_NOEC(double_fault, T_DBLFLT)
+	TRAPHANDLER(double_fault, T_DBLFLT)
 
 	TRAPHANDLER(invalid_tss, T_TSS)
 	TRAPHANDLER(segment_not_present, T_SEGNP)
@@ -58,7 +58,7 @@
 	TRAPHANDLER(page_fault, T_PGFLT)
 
 	TRAPHANDLER_NOEC(floating_point_error, T_FPERR)
-	TRAPHANDLER_NOEC(aligment_check, T_ALIGN)
+	TRAPHANDLER(aligment_check, T_ALIGN)
 	TRAPHANDLER_NOEC(machine_check, T_MCHK)
 	TRAPHANDLER_NOEC(simd_floating_point_error, T_SIMDERR)
 
