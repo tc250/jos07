@@ -1,6 +1,7 @@
 #include <inc/mmu.h>
 #include <inc/x86.h>
 #include <inc/assert.h>
+#include <inc/error.h>
 
 #include <kern/pmap.h>
 #include <kern/trap.h>
@@ -163,6 +164,18 @@ trap_dispatch(struct Trapframe *tf)
 	}
 	if (tf->tf_trapno == T_BRKPT) {
 		while (1) monitor(tf);
+		return;
+	}
+	if (tf->tf_trapno == T_SYSCALL) {
+		int32_t syscall_ret;
+		syscall_ret = syscall(tf->tf_regs.reg_eax, 
+							  tf->tf_regs.reg_edx, 
+							  tf->tf_regs.reg_ecx, 
+							  tf->tf_regs.reg_ebx, 
+							  tf->tf_regs.reg_edi, 
+							  tf->tf_regs.reg_esi);
+		assert(syscall_ret != -E_INVAL);
+		tf->tf_regs.reg_eax = syscall_ret;
 		return;
 	}
 
