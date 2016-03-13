@@ -73,6 +73,13 @@ void
 env_init(void)
 {
 	// LAB 3: Your code here.
+	int i;
+	LIST_INIT(&env_free_list); // [!]
+	for (i = NENV - 1; i >= 0; i --) {
+		envs[i].env_status = ENV_FREE;
+		envs[i].env_id = 0;
+		LIST_INSERT_HEAD(&env_free_list, &envs[i], env_link);
+	}
 }
 
 //
@@ -111,6 +118,12 @@ env_setup_vm(struct Env *e)
 	//	env_pgdir's pp_ref!
 
 	// LAB 3: Your code here.
+	memset(page2kva(p), 0, PGSIZE);
+	e->env_pgdir = page2kva(p);
+	e->env_cr3 = page2pa(p);
+	p->pp_ref ++; // [!]
+	for (i = PDX(UTOP); i < NPDENTRIES; i ++)
+		e->env_pgdir[i] = boot_pgdir[i];
 
 	// VPT and UVPT map the env's own page table, with
 	// different permissions.
@@ -204,6 +217,14 @@ segment_alloc(struct Env *e, void *va, size_t len)
 	// Hint: It is easier to use segment_alloc if the caller can pass
 	//   'va' and 'len' values that are not page-aligned.
 	//   You should round va down, and round len up.
+	va = ROUNDDOWN(va, PGSIZE);
+	len = ROUNDUP(len, PGSIZE);
+	int d;
+	struct Page *pp;
+	for (d = 0; d < len; d += PGSIZE) {
+		assert( page_alloc(&pp) == 0);
+		assert( page_insert(e->env_pgdir, pp, va+d, PTE_U | PTE_W) == 0);
+	}
 }
 
 //
@@ -261,11 +282,34 @@ load_icode(struct Env *e, uint8_t *binary, size_t size)
 	//  What?  (See env_run() and env_pop_tf() below.)
 
 	// LAB 3: Your code here.
+	physaddr_t kern_cr3 = rcr3();
+	// [?] when cr3 changes, semantics of names can be different
+	lcr3(e->env_cr3);
+
+	struct Elf *elf_hdr = (struct Elf *)binary;
+	assert(elf_hdr->e_magic == ELF_MAGIC);
+
+	struct Proghdr *ph, *eph;
+	ph = (struct Proghdr *)((uint8_t *)elf_hdr + elf_hdr->e_phoff);
+	eph = ph + elf_hdr->e_phnum;
+	for (; ph < eph; ph ++)
+		if (ph->p_type == ELF_PROG_LOAD) {
+			segment_alloc(e, (void *)ph->p_va, ph->p_memsz);
+			memset((void *)ph->p_va, 0, ph->p_memsz);
+			memmove((void *)ph->p_va, binary + ph->p_offset, ph->p_filesz);
+		}
+
+	e->env_tf.tf_eip = elf_hdr->e_entry; // [!] in e's VA space
 
 	// Now map one page for the program's initial stack
 	// at virtual address USTACKTOP - PGSIZE.
 
 	// LAB 3: Your code here.
+	// [?] just use segment_alloc
+	segment_alloc(e, (void *)(USTACKTOP - PGSIZE), PGSIZE);
+
+	// [!] `kern_cr3' has the same semantics in two pgdirs
+	lcr3(kern_cr3);
 }
 
 //
@@ -282,6 +326,9 @@ void
 env_create(uint8_t *binary, size_t size)
 {
 	// LAB 3: Your code here.
+	struct Env *new_env;
+	assert(env_alloc(&new_env, 0) == 0);
+	load_icode(new_env, binary, size);
 }
 
 //
@@ -394,7 +441,10 @@ env_run(struct Env *e)
 	//	e->env_tf to sensible values.
 	
 	// LAB 3: Your code here.
+	curenv = e;
+	e->env_runs ++;
+	lcr3(e->env_cr3);
 
-        panic("env_run not yet implemented");
+	env_pop_tf(&(e->env_tf));
 }
 
