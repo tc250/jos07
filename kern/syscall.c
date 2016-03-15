@@ -193,7 +193,27 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 	//   allocated!
 
 	// LAB 4: Your code here.
-	panic("sys_page_alloc not implemented");
+	struct Env* e;
+	int ret = envid2env(envid, &e, 1);
+	if (ret < 0) return ret;
+
+	if ((uint32_t)va >= UTOP) return -E_INVAL;
+	int mask = PTE_U | PTE_P | PTE_AVAIL | PTE_W;
+	if ((perm | mask) != mask) return -E_INVAL;
+
+	struct Page *new_pp;
+	ret = page_alloc(&new_pp);
+	if (ret < 0) return ret;
+
+	ret = page_insert(e->env_pgdir, new_pp, va, perm | PTE_U | PTE_P);
+	if (ret < 0) {
+		// [!] assert: decref is not necessary, because new_pp is new
+		page_free(new_pp);
+		return ret;
+	}
+	// [?] new page in kva space
+	memset(page2kva(new_pp), 0, PGSIZE);
+	return 0;
 }
 
 // Map the page of memory at 'srcva' in srcenvid's address space
