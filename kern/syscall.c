@@ -90,7 +90,22 @@ sys_exofork(void)
 	// will appear to return 0.
 	
 	// LAB 4: Your code here.
-	panic("sys_exofork not implemented");
+	struct Env *new_env;
+	assert(curenv != NULL);
+	int env_alloc_ret = env_alloc(&new_env, curenv->env_id);
+	if (env_alloc_ret < 0)
+		return env_alloc_ret;
+
+	new_env->env_status = ENV_NOT_RUNNABLE;
+	memmove(&new_env->env_tf, &curenv->env_tf, sizeof(curenv->env_tf));
+	// [?]
+	// [!] assert: semantics of eip is `next instr.' but not `current instr.'
+	new_env->env_tf.tf_eip = curenv->env_tf.tf_eip;
+	// child env have exactly the same state AFTER iret,
+	// because entry point for child env is eip
+	new_env->env_tf.tf_regs.reg_eax = 0;
+
+	return new_env->env_id;
 }
 
 // Set envid's env_status to status, which must be ENV_RUNNABLE
