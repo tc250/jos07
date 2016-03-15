@@ -125,7 +125,14 @@ sys_env_set_status(envid_t envid, int status)
 	// envid's status.
 	
 	// LAB 4: Your code here.
-	panic("sys_env_set_status not implemented");
+	struct Env *env;
+	int ret = envid2env(envid, &env, 1);
+	if (ret < 0) return ret;
+
+	if (!(status == ENV_RUNNABLE || status == ENV_NOT_RUNNABLE))
+		return -E_INVAL;
+	env->env_status = status;
+	return 0;
 }
 
 // Set envid's trap frame to 'tf'.
