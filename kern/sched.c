@@ -26,13 +26,13 @@ sched_yield(void)
 		i = ENVX(curenv->env_id);
 
 	s = i;
-	i = (i + 1) % NENV;
-	for (; i != s; i = (i + 1) % NENV) {
+	do {
+		i = (i + 1) % NENV;
 		if (i != 0 && envs[i].env_status == ENV_RUNNABLE) {
 			env_run(&envs[i]);
 			return; //[?]
 		}
-	}
+	} while (i != s);
 
 	// Run the special idle environment when nothing else is runnable.
 	if (envs[0].env_status == ENV_RUNNABLE)
