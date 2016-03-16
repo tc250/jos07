@@ -282,7 +282,15 @@ sys_page_unmap(envid_t envid, void *va)
 	// Hint: This function is a wrapper around page_remove().
 	
 	// LAB 4: Your code here.
-	panic("sys_page_unmap not implemented");
+	int ret;
+	struct Env *env;
+
+	ret = envid2env(envid, &env, 1);
+	if (ret < 0) return ret;
+	if ((uint32_t)va >= UTOP || (uint32_t)va % PGSIZE != 0) return -E_INVAL;
+
+	page_remove(env->env_pgdir, va);
+	return 0;
 }
 
 // Try to send 'value' to the target env 'envid'.
