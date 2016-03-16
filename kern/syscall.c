@@ -245,7 +245,28 @@ sys_page_map(envid_t srcenvid, void *srcva,
 	//   check the current permissions on the page.
 
 	// LAB 4: Your code here.
-	panic("sys_page_map not implemented");
+	int ret, mask;
+	struct Env *srcenv, *dstenv;
+	struct Page *pp;
+	pte_t *srcpte;
+	ret = envid2env(srcenvid, &srcenv, 1);
+	if (ret < 0) return ret;
+	ret = envid2env(dstenvid, &dstenv, 1);
+	if (ret < 0) return ret;
+
+	pp = page_lookup(srcenv->env_pgdir, srcva, &srcpte);
+	if (pp == NULL || ((*srcpte) & PTE_P) == 0) return -E_INVAL;
+
+	if ((uint32_t)srcva >= UTOP || (uint32_t)srcva % PGSIZE != 0) return -E_INVAL;
+	if ((uint32_t)dstva >= UTOP || (uint32_t)dstva % PGSIZE != 0) return -E_INVAL;
+	mask = PTE_U | PTE_P | PTE_AVAIL | PTE_W;
+	if ((perm | mask) != mask) return -E_INVAL;
+	if ((perm & PTE_W) && !((*srcpte) & PTE_W)) return -E_INVAL;
+	assert(!( (perm & PTE_W) != 0 && ((*srcpte) & PTE_W) == 0 ));
+
+	ret = page_insert(dstenv->env_pgdir, pp, dstva, perm);
+	if (ret < 0) return ret;
+	return 0;
 }
 
 // Unmap the page of memory at 'va' in the address space of 'envid'.
