@@ -272,9 +272,9 @@ page_fault_handler(struct Trapframe *tf)
 	assert(curenv != NULL);
 	if (curenv->env_pgfault_upcall != NULL) {
 		if (curenv->env_tf.tf_esp > USTACKTOP)
-			utf = (struct UTrapframe *)( curenv->env_tf.tf_esp - utfsz - 1 );
+			utf = (struct UTrapframe *)( curenv->env_tf.tf_esp - utfsz - 4 );
 		else
-			utf = (struct UTrapframe *)( UXSTACKTOP - utfsz - 1 );
+			utf = (struct UTrapframe *)( UXSTACKTOP - utfsz - 4 );
 		// [?] handle UXSTACK overflow
 		// [!] assert: user have no perm to `the empty page' below UXSTACK
 		user_mem_assert(curenv, utf, utfsz+1, PTE_P | PTE_U | PTE_W);
