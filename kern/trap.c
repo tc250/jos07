@@ -267,6 +267,30 @@ page_fault_handler(struct Trapframe *tf)
 	//   (the 'tf' variable points at 'curenv->env_tf').
 	
 	// LAB 4: Your code here.
+	struct UTrapframe *utf;
+	uint32_t utfsz = sizeof(struct UTrapframe);
+	assert(curenv != NULL);
+	if (curenv->env_pgfault_upcall != NULL) {
+		if (curenv->env_tf.tf_esp > USTACKTOP)
+			utf = (struct UTrapframe *)( curenv->env_tf.tf_esp - utfsz - 1 );
+		else
+			utf = (struct UTrapframe *)( UXSTACKTOP - utfsz - 1 );
+		// [?] handle UXSTACK overflow
+		// [!] assert: user have no perm to `the empty page' below UXSTACK
+		user_mem_assert(curenv, utf, utfsz+1, PTE_P | PTE_U | PTE_W);
+
+		utf->utf_esp = tf->tf_esp;
+		utf->utf_eflags = tf->tf_eflags;
+		utf->utf_eip = tf->tf_eip;
+		utf->utf_regs = tf->tf_regs;
+		utf->utf_err = tf->tf_err; // what's this?
+		utf->utf_fault_va = fault_va;
+
+		tf->tf_esp = (uintptr_t)utf;
+		tf->tf_eip = (uintptr_t)(curenv->env_pgfault_upcall);
+		env_run(curenv);
+		assert(0); // could not make it to here
+	}
 
 	// Destroy the environment that caused the fault.
 	cprintf("[%08x] user fault va %08x ip %08x\n",
