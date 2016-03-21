@@ -7,6 +7,9 @@
 // It is one of the bits explicitly allocated to user processes (PTE_AVAIL).
 #define PTE_COW		0x800
 
+// Assembly language pgfault entrypoint defined in lib/pgfaultentry.S.
+extern void _pgfault_upcall(void);
+
 //
 // Custom page fault handler - if faulting page is copy-on-write,
 // map in our own private writable copy.
@@ -80,7 +83,45 @@ envid_t
 fork(void)
 {
 	// LAB 4: Your code here.
-	panic("fork not implemented");
+	set_pgfault_handler(pgfault);
+	envid_t envid = sys_exofork();
+	if (envid < 0) {
+		// sys_exofork failed
+		return envid;
+	}
+	if (envid == 0) {
+		// this is child
+		// [?] form the only difference with parent
+		envid = sys_getenvid();
+		env = &envs[ENVX(envid)];
+		// [?] just directly return
+		return 0;
+	}
+
+	// this is parent
+	uintptr_t va;
+	int ret;
+	int pn;
+	for (va = 0; va < UTOP; va += PGSIZE) {
+		if (va == UXSTACKTOP-PGSIZE)
+			continue;
+		if ((vpd[VPD(va)] & PTE_P) == 0)
+			continue;
+		pn = VPN(va);
+		if ((vpt[pn] & PTE_P) && (vpt[pn] & PTE_U)) {
+			ret = duppage(envid, pn);
+			if (ret < 0) return ret;
+		}
+	}
+
+	ret = sys_page_alloc(envid, (void *)(UXSTACKTOP-PGSIZE), PTE_P | PTE_U | PTE_W);
+	if (ret < 0) panic("fork: page alloc failed");
+	ret = sys_env_set_pgfault_upcall(envid, _pgfault_upcall);
+	if (ret < 0) panic("fork: register entry point failed");
+
+	ret = sys_env_set_status(envid, ENV_RUNNABLE);
+	if (ret < 0) return ret;
+	return envid;
 }
 
 // Challenge!
