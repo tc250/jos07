@@ -20,6 +20,8 @@ pgfault(struct UTrapframe *utf)
 	void *addr = (void *) utf->utf_fault_va;
 	uint32_t err = utf->utf_err;
 	int r;
+	pte_t pte;
+	int perm = PTE_P|PTE_U|PTE_W;
 
 	// Check that the faulting access was (1) a write, and (2) to a
 	// copy-on-write page.  If not, panic.
@@ -28,6 +30,11 @@ pgfault(struct UTrapframe *utf)
 	//   (see <inc/memlayout.h>).
 
 	// LAB 4: Your code here.
+	pte = vpt[VPN(addr)];
+	// [!] assert: FEC_WR is a bit flag instead of a single code
+	// i.e. assert(there exist a errcode != FEC_WR, but with a FEC_WR)
+	if (!( (err & FEC_WR) != 0 && (pte & PTE_COW) != 0 ))
+		panic("pgfault handler: user fault at %08x with errcode %08x", addr, err);
 
 	// Allocate a new page, map it at a temporary location (PFTEMP),
 	// copy the data from the old page to the new page, then move the new
@@ -37,8 +44,13 @@ pgfault(struct UTrapframe *utf)
 	//   No need to explicitly delete the old page's mapping.
 	
 	// LAB 4: Your code here.
-	
-	panic("pgfault not implemented");
+	if ((r = sys_page_alloc(0, PFTEMP, perm)) < 0) {
+		panic("pgfault handler: sys_page_alloc failed");
+	}
+	memmove(PFTEMP, ROUNDDOWN(addr, PGSIZE), PGSIZE);
+	if ((r = sys_page_map(0, PFTEMP, 0, ROUNDDOWN(addr, PGSIZE), perm)) < 0) {
+		panic("pgfault handler: sys_page_map failed");
+	}
 }
 
 //
