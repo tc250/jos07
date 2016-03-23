@@ -76,13 +76,15 @@ duppage(envid_t envid, unsigned pn)
 	pte = vpt[pn];
 	if ((pte & PTE_W) || (pte & PTE_COW)) {
 		perm |= PTE_COW;
-		if ((r = sys_page_map(0, addr, 0, addr, perm)) < 0)
-			panic("sys_page_map: %e", r);
 	}
 
 	if ((r = sys_page_map(0, addr, envid, addr, perm)) < 0)
 		panic("sys_page_map: %e", r);
 
+	if ((pte & PTE_W) || (pte & PTE_COW)) {
+		if ((r = sys_page_map(0, addr, 0, addr, perm)) < 0)
+			panic("sys_page_map: %e", r);
+	}
 	return 0;
 }
 
