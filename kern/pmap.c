@@ -630,6 +630,7 @@ page_insert(pde_t *pgdir, struct Page *pp, void *va, int perm)
 	page_remove(pgdir, va);
 	// [!] pa for pp is properly aligned
 	*pte = page2pa(pp) | perm | PTE_P;
+	tlb_invalidate(pgdir, va);
 	return 0;
 }
 
