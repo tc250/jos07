@@ -130,8 +130,11 @@ fork(void)
 	for (va = 0; va < UTOP; va += PGSIZE) {
 		if (va == UXSTACKTOP-PGSIZE)
 			continue;
-		if ((vpd[VPD(va)] & PTE_P) == 0)
+		if ((vpd[VPD(va)] & PTE_P) == 0) {
+			assert((uintptr_t)va % PTSIZE == 0); // can only reach there for 1st PTE
+			va += PTSIZE - PGSIZE;				 // skip the entire PT
 			continue;
+		}
 		pn = VPN(va);
 		if ((vpt[pn] & PTE_P) && (vpt[pn] & PTE_U)) {
 			ret = duppage(envid, pn);
