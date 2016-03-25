@@ -82,6 +82,10 @@ extern void simd_floating_point_error();
 extern void system_call();
 extern void catchall();
 
+extern void irq_timer();
+extern void irq_kbd();
+extern void irq_ide();
+
 void
 idt_init(void)
 {
@@ -111,6 +115,10 @@ idt_init(void)
 
 	SETGATE(idt[T_SYSCALL], 0, GD_KT, system_call, 3)
 	SETGATE(idt[T_DEFAULT], 0, GD_KT, catchall, 0)
+
+	SETGATE(idt[IRQ_OFFSET+IRQ_TIMER], 0, GD_KT, irq_timer, 0)
+	SETGATE(idt[IRQ_OFFSET+IRQ_KBD], 0, GD_KT, irq_kbd, 0)
+	SETGATE(idt[IRQ_OFFSET+IRQ_IDE], 0, GD_KT, irq_ide, 0)
 
 	// Setup a TSS so that we get the right stack
 	// when we trap to the kernel.
