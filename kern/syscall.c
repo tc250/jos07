@@ -337,7 +337,43 @@ static int
 sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 {
 	// LAB 4: Your code here.
-	panic("sys_ipc_try_send not implemented");
+	struct Env *env;
+	struct Page *pp;
+	int r;
+
+	if ((r = envid2env(envid, &env, 0)) < 0) {
+		return -E_BAD_ENV;
+	}
+	if (env->env_ipc_recving == 0) {
+		return -E_IPC_NOT_RECV;
+	}
+	if ((uint32_t)srcva < UTOP && (uint32_t)srcva % PGSIZE != 0) {
+		return -E_INVAL;
+	}
+	int mask = PTE_U | PTE_P | PTE_AVAIL | PTE_W;
+	if ((uint32_t)srcva < UTOP && (perm | mask) != mask) {
+		return -E_INVAL;
+	}
+	if ((uint32_t)srcva < UTOP && (pp = page_lookup(curenv->env_pgdir, srcva, NULL)) == NULL) {
+		return -E_INVAL;
+	}
+	env->env_ipc_recving = 0;
+	env->env_ipc_from = curenv->env_id;
+	env->env_ipc_value = value; // sender always send a int
+	env->env_ipc_perm = 0;
+	if ((uint32_t)srcva != 0 && (uint32_t)(env->env_ipc_dstva) != 0 && // ?
+		(uint32_t)srcva < UTOP && (uint32_t)(env->env_ipc_dstva) < UTOP) {
+		// transfer if both sender and recipient want a page and requested valid va
+		// be silent otherwise
+		if ((r = page_insert(env->env_pgdir, pp, env->env_ipc_dstva, perm)) < 0) {
+			return r;
+		}
+		env->env_ipc_perm = perm;
+		env->env_status = ENV_RUNNABLE;
+		return 1;
+	}
+	env->env_status = ENV_RUNNABLE; // always send
+	return 0;
 }
 
 // Block until a value is ready.  Record that you want to receive
@@ -400,6 +436,9 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 		case SYS_yield:
 			sys_yield();
 			return 0;
+		case SYS_ipc_try_send:
+			return sys_ipc_try_send((envid_t)a1, (uint32_t)a2, 
+									(void *)a3, (unsigned)a4);
 		case SYS_ipc_recv:
 			return sys_ipc_recv((void *)a1);
 		default:
