@@ -355,7 +355,13 @@ static int
 sys_ipc_recv(void *dstva)
 {
 	// LAB 4: Your code here.
-	panic("sys_ipc_recv not implemented");
+	if ((uint32_t)dstva % PGSIZE != 0)
+		return -E_INVAL;
+	assert(curenv != NULL);
+	curenv->env_ipc_recving = 1;
+	curenv->env_ipc_dstva = dstva;
+	curenv->env_status = ENV_NOT_RUNNABLE;
+	sched_yield();
 	return 0;
 }
 
@@ -394,6 +400,8 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 		case SYS_yield:
 			sys_yield();
 			return 0;
+		case SYS_ipc_recv:
+			return sys_ipc_recv((void *)a1);
 		default:
 			// [?] assert: all valid return value should be non-negative
 			return -E_INVAL;
