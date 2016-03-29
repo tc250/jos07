@@ -47,6 +47,15 @@ void
 ipc_send(envid_t to_env, uint32_t val, void *pg, int perm)
 {
 	// LAB 4: Your code here.
-	panic("ipc_send not implemented");
+	int r;
+
+	if (pg == NULL) pg = (void *)UTOP;
+	while ((r = sys_ipc_try_send(to_env, val, pg, perm)) < 0) {
+		if (r != -E_IPC_NOT_RECV) {
+			panic("ipc_send: unexpected error:  %e", r);
+		}
+		sys_yield();
+	}
+	// [!] didn't differentiate ret value 0/1 of sys_ipc_try_send
 }
 
