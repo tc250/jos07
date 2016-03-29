@@ -397,8 +397,10 @@ sys_ipc_recv(void *dstva)
 	curenv->env_ipc_recving = 1;
 	curenv->env_ipc_dstva = dstva;
 	curenv->env_status = ENV_NOT_RUNNABLE;
+	curenv->env_tf.tf_regs.reg_eax = 0; // return value for syscall
 	sched_yield();
-	return 0;
+	assert(0); // control shouldn't reach here
+	//return 0;
 }
 
 
