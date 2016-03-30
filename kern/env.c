@@ -221,13 +221,13 @@ segment_alloc(struct Env *e, void *va, size_t len)
 	// Hint: It is easier to use segment_alloc if the caller can pass
 	//   'va' and 'len' values that are not page-aligned.
 	//   You should round va down, and round len up.
-	va = ROUNDDOWN(va, PGSIZE);
-	len = ROUNDUP(len, PGSIZE);
-	int d;
 	struct Page *pp;
-	for (d = 0; d < len; d += PGSIZE) {
+	void *end_va = va + len;
+	end_va = ROUNDUP(end_va, PGSIZE);
+	va = ROUNDDOWN(va, PGSIZE);
+	for (; va < end_va; va += PGSIZE) {
 		assert( page_alloc(&pp) == 0);
-		assert( page_insert(e->env_pgdir, pp, va+d, PTE_U | PTE_W) == 0);
+		assert( page_insert(e->env_pgdir, pp, va, PTE_U | PTE_W) == 0);
 	}
 }
 
